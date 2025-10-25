@@ -79,7 +79,8 @@ class ConnectController extends Controller
                 'access_token' => $tokenData['access_token'] ?? null,
                 'refresh_token' => $tokenData['refresh_token'] ?? null,
                 'expires_at' => isset($tokenData['expires_in']) ? now()->addSeconds($tokenData['expires_in']) : null,
-                'scopes' => $tokenData['raw']['scope'] ?? $drv->config['scopes'] ?? null,
+                'scopes' => $tokenData['raw']['scope']
+                                ?? ($drv->getScopes() ? $drv->getScopes() : null),
                 'meta' => $remoteUser,
             ]
         );

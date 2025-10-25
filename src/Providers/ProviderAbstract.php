@@ -17,9 +17,35 @@ abstract class ProviderAbstract implements ProviderInterface
         $this->oauthProvider = $this->makeProvider();
     }
 
+    /**
+     * Return full provider config array.
+     *
+     * @return array
+     */
+    public function getConfig(): array
+    {
+        return $this->config;
+    }
+
+    /**
+     * Return configured scopes or null.
+     *
+     * @return array|null
+     */
+    public function getScopes(): ?array
+    {
+        return $this->config['scopes'] ?? null;
+    }
+
     abstract protected function makeProvider(): AbstractProvider;
 
-    public function redirectUrl(array $options = []): mixed
+    /**
+     * Generate authorization redirect data.
+     *
+     * @param  array  $options
+     * @return array{url: string, code_verifier: ?string}
+     */
+    public function redirectUrl(array $options = []): array
     {
         // Add scopes from config if not provided
         if (empty($options) && !empty($this->config['scopes'])) {
@@ -44,26 +70,29 @@ abstract class ProviderAbstract implements ProviderInterface
             return ['url' => $url, 'code_verifier' => $verifier];
         }
 
-        return $url;
+        return [
+            'url' => $url,
+            'code_verifier' => $options['__pkce_code_verifier'] ?? null,
+        ];
     }
 
-/**
- * Generate a high-entropy code_verifier for PKCE
- */
-protected function generateCodeVerifier(int $length = 64): string
-{
-    // length between 43 and 128
-    $bytes = random_bytes($length);
-    return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
-}
+    /**
+     * Generate a high-entropy code_verifier for PKCE
+     */
+    protected function generateCodeVerifier(int $length = 64): string
+    {
+        // length between 43 and 128
+        $bytes = random_bytes($length);
+        return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
+    }
 
-/**
- * Create S256 code_challenge from verifier
- */
-protected function codeChallenge(string $verifier): string
-{
-    return rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
-}
+    /**
+     * Create S256 code_challenge from verifier
+     */
+    protected function codeChallenge(string $verifier): string
+    {
+        return rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
+    }
 
     public function getAccessToken(string $code, array $options = []): array
     {
