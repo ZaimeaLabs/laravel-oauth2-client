@@ -18,7 +18,7 @@ class GithubProvider extends ProviderAbstract
         ]);
     }
 
-    public function userFromToken(string $accessToken): array
+    public function userFromToken(string|AccessToken $accessToken): array
     {
         $tokenObj = new AccessToken(['access_token' => $accessToken]);
         $owner = $this->oauthProvider->getResourceOwner($tokenObj);

@@ -4,6 +4,7 @@ namespace Zaimea\OAuth2Client\Providers;
 
 use League\OAuth2\Client\Provider\GenericProvider;
 use Illuminate\Support\Facades\Http;
+use League\OAuth2\Client\Token\AccessToken;
 
 class InstagramProvider extends ProviderAbstract
 {
@@ -19,7 +20,7 @@ class InstagramProvider extends ProviderAbstract
         ]);
     }
 
-    public function userFromToken(string $accessToken): array
+    public function userFromToken(string|AccessToken $accessToken): array
     {
         $resp = Http::withToken($accessToken)->get($this->config['resource_url'] ?? 'https://graph.instagram.com/me', [
             'fields' => 'id,username,account_type'

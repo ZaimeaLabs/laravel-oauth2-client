@@ -4,6 +4,7 @@ namespace Zaimea\OAuth2Client\Providers;
 
 use League\OAuth2\Client\Provider\GenericProvider;
 use Illuminate\Support\Facades\Http;
+use League\OAuth2\Client\Token\AccessToken;
 
 class XProvider extends ProviderAbstract
 {
@@ -19,7 +20,7 @@ class XProvider extends ProviderAbstract
         ]);
     }
 
-    public function userFromToken(string $accessToken): array
+    public function userFromToken(string|AccessToken $accessToken): array
     {
         $resp = Http::withToken($accessToken)->get($this->config['resource_url'] ?? 'https://api.twitter.com/2/users/me');
         if ($resp->successful()) {
