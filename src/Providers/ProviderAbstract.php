@@ -121,17 +121,37 @@ abstract class ProviderAbstract implements ProviderInterface
         ];
     }
 
-    public function userFromToken(string $accessToken): array
+    public function userFromToken(string|AccessToken $accessToken): array
     {
         try {
-            $tokenObj = new AccessToken(['access_token' => $accessToken]);
+            if ($accessToken instanceof AccessToken) {
+                $tokenObj = $accessToken;
+            } else {
+                if (empty($accessToken)) {
+                    return [];
+                }
+                $tokenObj = new AccessToken(['access_token' => $accessToken]);
+            }
+
             $owner = $this->oauthProvider->getResourceOwner($tokenObj);
+
+            $data = method_exists($owner, 'toArray') ? $owner->toArray() : (array) $owner;
+            return $this->normalizeResourceOwner($data);
         } catch (\Throwable $e) {
-            Log::error('Failed to fetch resource owner', ['provider' => get_class($this), 'error' => $e->getMessage()]);
+            Log::error('userFromToken failed', [
+                'provider' => static::class,
+                'error' => $e->getMessage(),
+            ]);
             return [];
         }
+    }
 
-        return method_exists($owner,'toArray') ? $owner->toArray() : [];
+    /**
+     * Optional normalizer you can implement to keep provider outputs consistent.
+     */
+    protected function normalizeResourceOwner(array $data): array
+    {
+        return $data;
     }
 
     public function revokeToken(?string $accessToken = null): bool
