@@ -1,0 +1,37 @@
+{
+  "name": "zaimea/laravel-oauth2-client",
+  "description": "OAuth2 providers manager for Laravel league/oauth2-client based, extensible",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Zaimea\\OAuth2Client\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.1",
+    "illuminate/support": "^12",
+    "league/oauth2-client": "^2.6",
+    "guzzlehttp/guzzle": "^7.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.0 || ^10.0",
+    "orchestra/testbench": "^7.0"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Zaimea\\OAuth2Client\\AuthProvidersServiceProvider"
+      ],
+      "aliases": {
+        "AuthProviders": "Zaimea\\OAuth2Client\\Facades\\AuthProviders"
+      }
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Zaimea\\OAuth2Client\\Tests\\": "tests/",
+      "Zaimea\\OAuth2Client\\Database\\Factories\\": "database/factories/"
+    }
+  }
+}
