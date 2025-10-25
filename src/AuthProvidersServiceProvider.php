@@ -20,12 +20,12 @@ class AuthProvidersServiceProvider extends ServiceProvider
     public function boot()
     {
         // load routes and views
-        $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
-        $this->loadViewsFrom(__DIR__.'/../../resources/views', 'oauth2-client');
+        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'oauth2-client');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../../config/oauth2-client.php' => config_path('oauth2-client.php')
+                __DIR__.'/../config/oauth2-client.php' => config_path('oauth2-client.php')
             ], 'config');
         }
     }
