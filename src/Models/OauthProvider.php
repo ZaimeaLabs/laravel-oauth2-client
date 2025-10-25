@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class OauthProvider extends Model
 {
     protected $table = 'oauth_providers';
+
     protected $fillable = [
         'user_id',
         'provider',
@@ -28,14 +29,17 @@ class OauthProvider extends Model
     {
         $this->attributes['access_token'] = $value ? encrypt($value) : null;
     }
+
     public function getAccessTokenAttribute($value)
     {
         return $value ? decrypt($value) : null;
     }
+
     public function setRefreshTokenAttribute($value)
     {
         $this->attributes['refresh_token'] = $value ? encrypt($value) : null;
     }
+
     public function getRefreshTokenAttribute($value)
     {
         return $value ? decrypt($value) : null;

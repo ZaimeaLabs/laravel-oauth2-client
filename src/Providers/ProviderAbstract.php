@@ -2,13 +2,16 @@
 
 namespace Zaimea\OAuth2Client\Providers;
 
-use Zaimea\OAuth2Client\Contracts\ProviderInterface;
+use Illuminate\Support\Facades\Log;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Provider\GenericProvider;
+use League\OAuth2\Client\Token\AccessToken;
+use Zaimea\OAuth2Client\Contracts\ProviderInterface;
 
 abstract class ProviderAbstract implements ProviderInterface
 {
     protected array $config;
+
     protected AbstractProvider $oauthProvider;
 
     public function __construct(array $config)
@@ -120,8 +123,14 @@ abstract class ProviderAbstract implements ProviderInterface
 
     public function userFromToken(string $accessToken): array
     {
-        $token = $this->oauthProvider->getAccessToken('bearer', ['access_token' => $accessToken]);
-        $owner = $this->oauthProvider->getResourceOwner($token);
+        try {
+            $tokenObj = new AccessToken(['access_token' => $accessToken]);
+            $owner = $this->oauthProvider->getResourceOwner($tokenObj);
+        } catch (\Throwable $e) {
+            Log::error('Failed to fetch resource owner', ['provider' => get_class($this), 'error' => $e->getMessage()]);
+            return [];
+        }
+
         return method_exists($owner,'toArray') ? $owner->toArray() : [];
     }
 

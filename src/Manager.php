@@ -8,6 +8,7 @@ use Zaimea\OAuth2Client\Providers\ProviderAbstract;
 class Manager
 {
     protected Container $app;
+
     protected array $drivers = [];
 
     public function __construct(Container $app)

@@ -40,7 +40,7 @@ class ConnectController extends Controller
                 return view('oauth2-client::providers.show', compact('provider','attached'));
             }
 
-            public function redirectToProvider(Request $request, $provider)
+    public function redirectToProvider(Request $request, $provider)
     {
         $drv = $this->manager->driver($provider);
         $auth = $drv->redirectUrl();

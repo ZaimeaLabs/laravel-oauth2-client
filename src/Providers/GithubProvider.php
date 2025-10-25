@@ -2,9 +2,10 @@
 
 namespace Zaimea\OAuth2Client\Providers;
 
-use League\OAuth2\Client\Provider\Github;
-use League\OAuth2\Client\Token\AccessTokenInterface;
 use Illuminate\Support\Facades\Http;
+use League\OAuth2\Client\Provider\Github;
+use League\OAuth2\Client\Token\AccessToken;
+use League\OAuth2\Client\Token\AccessTokenInterface;
 
 class GithubProvider extends ProviderAbstract
 {
@@ -19,8 +20,8 @@ class GithubProvider extends ProviderAbstract
 
     public function userFromToken(string $accessToken): array
     {
-        $token = $this->oauthProvider->getAccessToken('bearer', ['access_token' => $accessToken]);
-        $owner = $this->oauthProvider->getResourceOwner($token);
+        $tokenObj = new AccessToken(['access_token' => $accessToken]);
+        $owner = $this->oauthProvider->getResourceOwner($tokenObj);
         $data = method_exists($owner,'toArray') ? $owner->toArray() : (array)$owner;
         // Normalize common fields
         return [

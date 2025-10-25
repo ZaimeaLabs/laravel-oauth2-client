@@ -2,8 +2,9 @@
 
 namespace Zaimea\OAuth2Client\Providers;
 
-use League\OAuth2\Client\Provider\Google;
 use Illuminate\Support\Facades\Http;
+use League\OAuth2\Client\Provider\Google;
+use League\OAuth2\Client\Token\AccessToken;
 
 class GoogleProvider extends ProviderAbstract
 {
@@ -20,8 +21,8 @@ class GoogleProvider extends ProviderAbstract
 
     public function userFromToken(string $accessToken): array
     {
-        $token = $this->oauthProvider->getAccessToken('bearer', ['access_token' => $accessToken]);
-        $owner = $this->oauthProvider->getResourceOwner($token);
+        $tokenObj = new AccessToken(['access_token' => $accessToken]);
+        $owner = $this->oauthProvider->getResourceOwner($tokenObj);
         $data = method_exists($owner,'toArray') ? $owner->toArray() : (array)$owner;
         return [
             'id' => $data['sub'] ?? $data['id'] ?? null,

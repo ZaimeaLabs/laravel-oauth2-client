@@ -2,8 +2,9 @@
 
 namespace Zaimea\OAuth2Client\Providers;
 
-use League\OAuth2\Client\Provider\Facebook;
 use Illuminate\Support\Facades\Http;
+use League\OAuth2\Client\Provider\Facebook;
+use League\OAuth2\Client\Token\AccessToken;
 
 class FacebookProvider extends ProviderAbstract
 {
@@ -19,8 +20,8 @@ class FacebookProvider extends ProviderAbstract
 
     public function userFromToken(string $accessToken): array
     {
-        $token = $this->oauthProvider->getAccessToken('bearer', ['access_token' => $accessToken]);
-        $owner = $this->oauthProvider->getResourceOwner($token);
+        $tokenObj = new AccessToken(['access_token' => $accessToken]);
+        $owner = $this->oauthProvider->getResourceOwner($tokenObj);
         $data = method_exists($owner,'toArray') ? $owner->toArray() : (array)$owner;
         return [
             'id' => $data['id'] ?? null,
