@@ -51,7 +51,8 @@ abstract class ProviderAbstract
 
     public function getAccessToken(string $code, array $options = []): array
     {
-        $params = array_merge(['code'=>$code], $options);
+        $params = array_merge(['code' => $code], $options);
+
         if (!isset($params['redirect_uri']) && !empty($this->config['redirect'])) {
             $params['redirect_uri'] = $this->config['redirect'];
         }
@@ -59,17 +60,23 @@ abstract class ProviderAbstract
         try {
             $token = $this->oauthProvider->getAccessToken('authorization_code', $params);
             if ($token instanceof AccessToken) {
-                $vals = $token->getValues();
-                return $this->formatAccessToken($vals);
+                return $this->formatAccessToken($token->getValues());
             }
-            return $this->formatAccessToken((array)$token);
+            return $this->formatAccessToken((array) $token);
         } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-            Log::warning('IdentityProviderException during token exchange', ['error'=>$e->getMessage()]);
-            $resp = method_exists($e,'getResponseBody') ? $e->getResponseBody() : null;
+            Log::warning('IdentityProviderException during token exchange', [
+                'provider' => static::class,
+                'message' => $e->getMessage(),
+                'response' => method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null,
+            ]);
+            $resp = method_exists($e, 'getResponseBody') ? $e->getResponseBody() : null;
             return $this->formatAccessToken(is_array($resp) ? $resp : []);
         } catch (\Throwable $e) {
-            Log::error('Unexpected error getting access token', ['error'=>$e->getMessage()]);
-            return ['access_token'=>null,'refresh_token'=>null,'expires_in'=>null,'raw'=>[]];
+            Log::error('Unexpected error getting access token', [
+                'provider' => static::class,
+                'error' => $e->getMessage(),
+            ]);
+            return ['access_token' => null, 'refresh_token' => null, 'expires_in' => null, 'raw' => []];
         }
     }
 

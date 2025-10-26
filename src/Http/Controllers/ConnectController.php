@@ -49,6 +49,11 @@ class ConnectController extends Controller
             if (!empty($auth['state'])) {
                 Session::put("oauth.{$provider}.state", $auth['state']);
             }
+            Log::info('OAuth redirect ConnectController.php', [
+                'provider'=>$provider,
+                'has_code_verifier'=>!empty($auth['code_verifier']),
+                'state'=>$auth['state'] ?? null
+            ]);
             return redirect()->away($auth['url']);
         }
         return redirect()->away($auth);
@@ -59,7 +64,16 @@ class ConnectController extends Controller
         $user = Auth::user();
         if (!$user) return redirect()->route('login');
 
+        // debug: log callback params (temporary - remove in prod)
+        Log::info('OAuth callback hit', [
+            'provider' => $provider,
+            'code' => $request->get('code') ?? 'missing',
+            'state' => $request->get('state') ?? 'missing',
+            'session_state' => Session::get("oauth.{$provider}.state"),
+            'session_code_verifier_exists' => Session::has("oauth.{$provider}.code_verifier"),
+        ]);
         $code = $request->get('code');
+        Log::info('Callback details', ['code'=>$code,'state'=>$request->get('state')]); // De sters
         if (!$code) {
             return redirect()->route('oauth2-client.providers.index')->with('error','Authorization failed');
         }

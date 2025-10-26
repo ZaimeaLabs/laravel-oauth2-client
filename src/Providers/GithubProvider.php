@@ -29,13 +29,20 @@ class GithubProvider extends ProviderAbstract
             $clientSecret = $this->config['client_secret'] ?? env('GITHUB_CLIENT_SECRET');
             $redirect = $this->config['redirect'] ?? env('GITHUB_REDIRECT');
 
+            $payload = [
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+                'code' => $code,
+                'redirect_uri' => $redirect,
+            ];
+
+            // include PKCE verifier if present
+            if (!empty($options['code_verifier'])) {
+                $payload['code_verifier'] = $options['code_verifier'];
+            }
+
             try {
-                $resp = Http::asForm()->withHeaders(['Accept'=>'application/json'])->post('https://github.com/login/oauth/access_token', [
-                    'client_id' => $clientId,
-                    'client_secret' => $clientSecret,
-                    'code' => $code,
-                    'redirect_uri' => $redirect,
-                ]);
+                $resp = Http::asForm()->withHeaders(['Accept'=>'application/json'])->post('https://github.com/login/oauth/access_token', $payload);
                 if ($resp->ok()) {
                     $body = $resp->json();
                     return $this->formatAccessToken($body);
