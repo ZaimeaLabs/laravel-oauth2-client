@@ -2,48 +2,62 @@
 
 namespace Zaimea\OAuth2Client\Providers;
 
-use Illuminate\Support\Facades\Http;
 use League\OAuth2\Client\Provider\Github;
-use League\OAuth2\Client\Token\AccessToken;
-use League\OAuth2\Client\Token\AccessTokenInterface;
-use League\OAuth2\Client\Provider\GenericProvider;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class GithubProvider extends ProviderAbstract
 {
-    protected function makeProvider(): GenericProvider
+    protected function makeProvider(): \League\OAuth2\Client\Provider\AbstractProvider
     {
-        return new GenericProvider([
-            'clientId'                => $this->config['client_id'],
-            'clientSecret'            => $this->config['client_secret'],
-            'redirectUri'             => $this->config['redirect'],
-            'urlAuthorize'            => 'https://github.com/login/oauth/authorize',
-            'urlAccessToken'          => 'https://github.com/login/oauth/access_token',
-            'urlResourceOwnerDetails' => 'https://api.github.com/user',
-            'headers' => [
-                'Accept' => 'application/json',
-                'User-Agent' => 'Zaimea-OAuth2-Client'
-            ],
+        return new Github([
+            'clientId' => $this->config['client_id'] ?? null,
+            'clientSecret' => $this->config['client_secret'] ?? null,
+            'redirectUri' => $this->config['redirect'] ?? null,
+            'scope' => $this->config['scopes'] ?? null,
         ]);
     }
 
-    public function userFromToken(string|AccessToken $accessToken): array
+    public function getAccessToken(string $code, array $options = []): array
     {
-        $tokenObj = new AccessToken(['access_token' => $accessToken]);
-        $owner = $this->oauthProvider->getResourceOwner($tokenObj);
-        $data = method_exists($owner,'toArray') ? $owner->toArray() : (array)$owner;
-        // Normalize common fields
-        return [
-            'id' => $data['id'] ?? $data['node_id'] ?? null,
-            'login' => $data['login'] ?? null,
-            'name' => $data['name'] ?? null,
-            'email' => $data['email'] ?? null,
-            'raw' => $data,
-        ];
+        $res = parent::getAccessToken($code, $options);
+
+        if (empty($res['access_token'])) {
+            Log::warning('League client returned no access token, attempting manual GitHub exchange', ['raw'=>$res['raw'] ?? null]);
+
+            $clientId = $this->config['client_id'] ?? env('GITHUB_CLIENT_ID');
+            $clientSecret = $this->config['client_secret'] ?? env('GITHUB_CLIENT_SECRET');
+            $redirect = $this->config['redirect'] ?? env('GITHUB_REDIRECT');
+
+            try {
+                $resp = Http::asForm()->withHeaders(['Accept'=>'application/json'])->post('https://github.com/login/oauth/access_token', [
+                    'client_id' => $clientId,
+                    'client_secret' => $clientSecret,
+                    'code' => $code,
+                    'redirect_uri' => $redirect,
+                ]);
+                if ($resp->ok()) {
+                    $body = $resp->json();
+                    return $this->formatAccessToken($body);
+                }
+                Log::error('Manual GitHub exchange failed', ['status'=>$resp->status(),'body'=>$resp->body()]);
+            } catch (\Throwable $e) {
+                Log::error('Manual GitHub exchange exception', ['error'=>$e->getMessage()]);
+            }
+        }
+
+        return $res;
     }
 
     public function revokeToken(?string $accessToken = null): bool
     {
-        // optional: revoke with GitHub App endpoint if configured
-        return parent::revokeToken($accessToken);
+        if (!$accessToken) return false;
+        $clientId = $this->config['client_id'] ?? null;
+        $clientSecret = $this->config['client_secret'] ?? null;
+        if (!$clientId || !$clientSecret) return false;
+
+        $url = "https://api.github.com/applications/{$clientId}/token";
+        $resp = Http::withBasicAuth($clientId, $clientSecret)->delete($url, ['access_token'=>$accessToken]);
+        return $resp->successful();
     }
 }
