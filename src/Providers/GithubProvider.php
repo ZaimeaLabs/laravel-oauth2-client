@@ -43,6 +43,12 @@ class GithubProvider extends ProviderAbstract
 
             try {
                 $resp = Http::asForm()->withHeaders(['Accept'=>'application/json'])->post('https://github.com/login/oauth/access_token', $payload);
+                Log::info('Manual GitHub exchange response', [
+                    'status' => $resp->status(),
+                    'body' => $resp->body(),
+                    'json' => $resp->json(),
+                    'payload_sent' => $payload,
+                ]);
                 if ($resp->ok()) {
                     $body = $resp->json();
                     return $this->formatAccessToken($body);
