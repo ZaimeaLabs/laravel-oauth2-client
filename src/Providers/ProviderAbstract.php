@@ -102,6 +102,12 @@ abstract class ProviderAbstract implements ProviderInterface
     public function getAccessToken(string $code, array $options = []): array
     {
         $params = array_merge(['code' => $code], $options);
+
+        // ensure redirect uri is present for the token exchange
+        if (!isset($params['redirect_uri']) && !empty($this->config['redirect'])) {
+            $params['redirect_uri'] = $this->config['redirect'];
+        }
+
         $accessToken = $this->oauthProvider->getAccessToken('authorization_code', $params);
         return $this->formatAccessToken($accessToken->getValues());
     }

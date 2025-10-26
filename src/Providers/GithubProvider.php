@@ -6,15 +6,23 @@ use Illuminate\Support\Facades\Http;
 use League\OAuth2\Client\Provider\Github;
 use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Token\AccessTokenInterface;
+use League\OAuth2\Client\Provider\GenericProvider;
 
 class GithubProvider extends ProviderAbstract
 {
-    protected function makeProvider(): Github
+    protected function makeProvider(): GenericProvider
     {
-        return new Github([
-            'clientId' => $this->config['client_id'],
-            'clientSecret' => $this->config['client_secret'],
-            'redirectUri' => $this->config['redirect'],
+        return new GenericProvider([
+            'clientId'                => $this->config['client_id'],
+            'clientSecret'            => $this->config['client_secret'],
+            'redirectUri'             => $this->config['redirect'],
+            'urlAuthorize'            => 'https://github.com/login/oauth/authorize',
+            'urlAccessToken'          => 'https://github.com/login/oauth/access_token',
+            'urlResourceOwnerDetails' => 'https://api.github.com/user',
+            'headers' => [
+                'Accept' => 'application/json',
+                'User-Agent' => 'Zaimea-OAuth2-Client'
+            ],
         ]);
     }
 
@@ -35,18 +43,7 @@ class GithubProvider extends ProviderAbstract
 
     public function revokeToken(?string $accessToken = null): bool
     {
-        // GitHub App revocation requires Basic auth with client_id:client_secret and hits
-        // https://api.github.com/applications/:client_id/token => DELETE, per docs.
-        $token = $accessToken;
-        if (!$token) return false;
-
-        $clientId = $this->config['client_id'];
-        $clientSecret = $this->config['client_secret'];
-
-        $url = "https://api.github.com/applications/{$clientId}/token";
-        $resp = Http::withBasicAuth($clientId, $clientSecret)
-            ->delete($url, ['access_token' => $token]);
-
-        return $resp->successful();
+        // optional: revoke with GitHub App endpoint if configured
+        return parent::revokeToken($accessToken);
     }
 }

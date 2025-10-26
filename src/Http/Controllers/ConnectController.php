@@ -45,24 +45,19 @@ class ConnectController extends Controller
     public function redirectToProvider(Request $request, $provider)
     {
         $drv = $this->manager->driver($provider);
-        $auth = $drv->redirectUrl(); // acum întotdeauna array: ['url','code_verifier','state']
+        $auth = $drv->redirectUrl(); // ['url','code_verifier','state']
 
-        // Debug: log the redirect data (remove in prod)
-        Log::info('OAuth redirect', [
-            'provider' => $provider,
-            'has_code_verifier' => !empty($auth['code_verifier']),
-            'state' => $auth['state'] ?? null,
-        ]);
-
-        // store PKCE verifier and state in session
-        if (!empty($auth['code_verifier'])) {
-            Session::put("oauth.{$provider}.code_verifier", $auth['code_verifier']);
+        if (is_array($auth)) {
+            if (!empty($auth['code_verifier'])) {
+                Session::put("oauth.{$provider}.code_verifier", $auth['code_verifier']);
+            }
+            if (!empty($auth['state'])) {
+                Session::put("oauth.{$provider}.state", $auth['state']);
+            }
+            Log::info('OAuth redirect', ['provider' => $provider, 'state' => $auth['state'] ?? null, 'has_code_verifier' => !empty($auth['code_verifier'])]);
+            return redirect()->away($auth['url']);
         }
-        if (!empty($auth['state'])) {
-            Session::put("oauth.{$provider}.state", $auth['state']);
-        }
-
-        return redirect()->away($auth['url']);
+        return redirect()->away($auth);
     }
 
     public function callback(Request $request, $provider)
