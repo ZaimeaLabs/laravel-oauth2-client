@@ -46,7 +46,7 @@ abstract class ProviderAbstract implements ProviderInterface
      * Generate authorization redirect data.
      *
      * @param  array  $options
-     * @return array{url: string, code_verifier: ?string}
+     * @return array{url: string, code_verifier: ?string, state: ?string}
      */
     public function redirectUrl(array $options = []): array
     {
@@ -55,27 +55,29 @@ abstract class ProviderAbstract implements ProviderInterface
             $options['scope'] = $this->config['scopes'];
         }
 
-        // PKCE support: if configured, generate code_challenge and add to options
+        $verifier = null;
+        // PKCE support
         if (!empty($this->config['use_pkce'])) {
             $verifier = $this->generateCodeVerifier();
             $challenge = $this->codeChallenge($verifier);
-            // Consumers should persist the code_verifier (e.g. in session) and the state if needed
             $options['code_challenge'] = $challenge;
             $options['code_challenge_method'] = 'S256';
-            $options['__pkce_code_verifier'] = $verifier; // helper return only, not sent to provider
+            // do not send verifier to provider; keep as helper
         }
 
+        // build authorization URL via underlying league provider
         $url = $this->oauthProvider->getAuthorizationUrl($options);
-        // If PKCE was used we provide the verifier so callers can persist it (e.g. session)
-        if (!empty($options['__pkce_code_verifier'])) {
-            $verifier = $options['__pkce_code_verifier'];
-            unset($options['__pkce_code_verifier']);
-            return ['url' => $url, 'code_verifier' => $verifier];
+
+        // get state from league provider (if available)
+        $state = null;
+        if (method_exists($this->oauthProvider, 'getState')) {
+            $state = $this->oauthProvider->getState();
         }
 
         return [
             'url' => $url,
-            'code_verifier' => $options['__pkce_code_verifier'] ?? null,
+            'code_verifier' => $verifier,
+            'state' => $state,
         ];
     }
 
