@@ -56,6 +56,11 @@ class ConnectController extends Controller
             ]);
             return redirect()->away($auth['url']);
         }
+        Log::info('OAuth redirect debug', [
+            'provider' => $provider,
+            'config_redirect' => $drv->getConfig()['redirect'] ?? null,
+            'env_redirect' => env('GITHUB_REDIRECT'),
+        ]);
         return redirect()->away($auth);
     }
 
