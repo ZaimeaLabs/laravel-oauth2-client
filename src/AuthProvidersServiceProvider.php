@@ -21,7 +21,7 @@ class AuthProvidersServiceProvider extends ServiceProvider
     {
         // load routes and views
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'oauth2-client');
+        $this->loadViewsFrom(__DIR__.'/../resources/views/providers', 'oauth2-client');
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
