@@ -6,7 +6,7 @@ return [
             'client_secret' => env('GITHUB_CLIENT_SECRET'),
             'redirect' => env('GITHUB_REDIRECT'),
             'scopes' => ['repo', 'user:email'],
-            'use_pkce' => false,
+            'use_pkce' => true,
         ],
         'google' => [
             'client_id' => env('GOOGLE_CLIENT_ID'),

@@ -37,7 +37,7 @@ class ConnectController extends Controller
     {
         $drv = $this->manager->driver($provider);
         $auth = $drv->redirectUrl();
-
+        Session::forget("oauth.{$provider}");
         // persist PKCE verifier and state
         if (!empty($auth['code_verifier'])) {
             Session::put("oauth.{$provider}.code_verifier", $auth['code_verifier']);
