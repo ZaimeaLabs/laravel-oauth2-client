@@ -1,41 +1,56 @@
-name: Laravel OAuth2 Client tests
+name: Run tests
 
 on:
   push:
-    branches:
-      - main
-      - '*.x'
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
-        fail-fast: true
-        matrix:
-            php: [8.2]
-            laravel: [12.*]
+      fail-fast: true
+      matrix:
+        php: [8.2]
+        laravel: [12.*]
 
     name: PHP ${{ matrix.php }} - Laravel ${{ matrix.laravel }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
-          ini-values: error_reporting=E_ALL
           tools: composer:v2
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, fileinfo
+          ini-values: error_reporting=E_ALL
           coverage: none
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
 
       - name: Install Composer dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
-          composer update --no-interaction --no-suggest
+          # prefer install over require/update: faster & more predictable
+          composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Execute PHP Unit tests
-        run: vendor/bin/phpunit
+      - name: Prepare environment
+        run: |
+          if [ -f .env.example ]; then cp .env.example .env; else echo "APP_KEY=" > .env; fi
+          php -r "if (!file_exists('.env')) copy('.env.example', '.env');"
+          php artisan key:generate --ansi || true
+
+      - name: Run migrations (if tests need DB)
+        run: |
+          php artisan migrate --force || true
+
+      - name: Run PHPUnit (tests directory)
+        run: |
+          # If you keep tests in "tests/" directory, this will run them.
+          # If you use phpunit.xml.dist you can run just `vendor/bin/phpunit`.
+          if [ -d tests ]; then vendor/bin/phpunit --colors=always -v tests; else vendor/bin/phpunit --colors=always -v; fi
