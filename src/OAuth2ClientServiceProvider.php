@@ -22,7 +22,7 @@ class OAuth2ClientServiceProvider extends ServiceProvider
         $this->publishes([__DIR__.'/../config/oauth2-client.php' => config_path('oauth2-client.php')], 'config');
         $this->loadRoutesFrom(__DIR__.'/../routes/oauth2-client.php');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'oauth2-client');
-        $this->publishes([__DIR__.'/../resources/views' => resource_path('views/vendor/oauth2-client')], 'views');
+        $this->loadViewsFrom(__DIR__.'/../resources/views/oauth2-client', 'oauth2-client');
+        $this->publishes([__DIR__.'/../resources/views/oauth2-client' => resource_path('views/vendor/oauth2-client')], 'views');
     }
 }
