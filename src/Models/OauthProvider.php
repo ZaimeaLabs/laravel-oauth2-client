@@ -24,24 +24,4 @@ class OauthProvider extends Model
         'scopes' => 'array',
         'meta' => 'array',
     ];
-
-    public function setAccessTokenAttribute($value)
-    {
-        $this->attributes['access_token'] = $value ? encrypt($value) : null;
-    }
-
-    public function getAccessTokenAttribute($value)
-    {
-        return $value ? decrypt($value) : null;
-    }
-
-    public function setRefreshTokenAttribute($value)
-    {
-        $this->attributes['refresh_token'] = $value ? encrypt($value) : null;
-    }
-
-    public function getRefreshTokenAttribute($value)
-    {
-        return $value ? decrypt($value) : null;
-    }
 }

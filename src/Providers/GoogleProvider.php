@@ -1,42 +1,22 @@
 <?php
-
 namespace Zaimea\OAuth2Client\Providers;
 
-use Illuminate\Support\Facades\Http;
-use League\OAuth2\Client\Provider\Google;
-use League\OAuth2\Client\Token\AccessToken;
+use League\OAuth2\Client\Provider\GenericProvider;
 
 class GoogleProvider extends ProviderAbstract
 {
-    protected function makeProvider(): Google
+    protected function makeProvider(): \League\OAuth2\Client\Provider\AbstractProvider
     {
-        return new Google([
-            'clientId' => $this->config['client_id'],
-            'clientSecret' => $this->config['client_secret'],
-            'redirectUri' => $this->config['redirect'],
-            'accessType' => $this->config['access_type'] ?? 'offline',
-            'hostedDomain' => $this->config['hosted_domain'] ?? null,
+        return new GenericProvider([
+            'clientId'                => $this->config['client_id'],
+            'clientSecret'            => $this->config['client_secret'],
+            'redirectUri'             => $this->config['redirect'],
+            'urlAuthorize'            => 'https://accounts.google.com/o/oauth2/v2/auth',
+            'urlAccessToken'          => 'https://oauth2.googleapis.com/token',
+            'urlResourceOwnerDetails' => 'https://openidconnect.googleapis.com/v1/userinfo',
+            'scopes'                  => $this->config['scopes'] ?? ['openid', 'profile', 'email']
         ]);
     }
 
-    public function userFromToken(string|AccessToken $accessToken): array
-    {
-        $tokenObj = new AccessToken(['access_token' => $accessToken]);
-        $owner = $this->oauthProvider->getResourceOwner($tokenObj);
-        $data = method_exists($owner,'toArray') ? $owner->toArray() : (array)$owner;
-        return [
-            'id' => $data['sub'] ?? $data['id'] ?? null,
-            'email' => $data['email'] ?? null,
-            'name' => $data['name'] ?? null,
-            'raw' => $data,
-        ];
-    }
-
-    public function revokeToken(?string $accessToken = null): bool
-    {
-        $token = $accessToken;
-        if (!$token) return false;
-        $resp = Http::asForm()->post('https://oauth2.googleapis.com/revoke', ['token' => $token]);
-        return $resp->successful();
-    }
+    // Optionally override userFromToken to map fields to your normalized format.
 }

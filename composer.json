@@ -1,42 +1,66 @@
 {
-  "name": "zaimea/laravel-oauth2-client",
-  "description": "OAuth2 providers manager for Laravel league/oauth2-client based, extensible",
-  "type": "library",
-  "license": "MIT",
-  "autoload": {
-    "psr-4": {
-      "Zaimea\\OAuth2Client\\": "src/"
-    }
-  },
-  "require": {
-    "php": "^8.2",
-    "illuminate/support": "^12",
-    "league/oauth2-client": "^2.6",
-    "league/oauth2-facebook": "^2.0",
-    "league/oauth2-github": "^2.0",
-    "league/oauth2-linkedin": "^2.0",
-    "league/oauth2-google": "^2.0",
-    "league/oauth2-instagram": "^2.0",
-    "guzzlehttp/guzzle": "^7.10"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "^11.0",
-    "orchestra/testbench": "^10.0"
-  },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "Zaimea\\OAuth2Client\\AuthProvidersServiceProvider"
-      ],
-      "aliases": {
-        "AuthProviders": "Zaimea\\OAuth2Client\\Facades\\AuthProviders"
-      }
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Zaimea\\OAuth2Client\\Tests\\": "tests/",
-      "Zaimea\\OAuth2Client\\Database\\Factories\\": "database/factories/"
-    }
-  }
+    "name": "zaimea/laravel-oauth2-client",
+    "license": "MIT",
+    "homepage": "https://zaimea.com",
+    "description": "OAuth2 providers manager for Laravel league/oauth2-client based, extensible",
+    "keywords": [
+        "laravel",
+        "oauth2",
+        "league/oauth2-client",
+        "zaimealabs",
+        "zaimea"
+    ],
+    "authors": [
+        {
+            "name": "Custură Laurențiu",
+            "email": "mail@custura.de"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^12",
+        "league/oauth2-client": "^2.6",
+        "league/oauth2-facebook": "^2.0",
+        "league/oauth2-github": "^2.0",
+        "league/oauth2-linkedin": "^2.0",
+        "league/oauth2-google": "^2.0",
+        "league/oauth2-instagram": "^2.0",
+        "guzzlehttp/guzzle": "^7.10"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0",
+        "phpunit/phpunit": "^11.0",
+        "mockery/mockery": "^1.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Zaimea\\OAuth2Client\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Zaimea\\OAuth2Client\\Tests\\": "tests/",
+            "Zaimea\\OAuth2Client\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Zaimea\\OAuth2Client\\OAuth2ClientServiceProvider"
+            ],
+            "aliases": {
+                "OAuth2Client": "Zaimea\\OAuth2Client\\Facades\\OAuth2Client"
+            }
+        },
+        "branch-alias": {
+            "dev-master": "1.x-dev"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "dev"
 }

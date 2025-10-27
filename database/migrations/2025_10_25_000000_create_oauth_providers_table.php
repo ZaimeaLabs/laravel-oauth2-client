@@ -15,12 +15,12 @@ class CreateOauthProvidersTable extends Migration
             $table->id()->primary();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('provider'); // 'github', 'google'
-            $table->foreignUuid('provider_user_id')->index();
+            $table->string('provider_user_id')->nullable();
             $table->text('access_token')->nullable();
             $table->text('refresh_token')->nullable();
-            $table->json('scopes')->nullable();
+            $table->text('scopes')->nullable();
             $table->json('meta')->nullable();
-            $table->dateTime('expires_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
             $table->timestamps();
             $table->unique(['provider', 'provider_user_id', 'user_id'], 'oauth_provider_user_unique');
         });

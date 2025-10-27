@@ -1,48 +1,20 @@
 <?php
-
 namespace Zaimea\OAuth2Client\Providers;
 
-use Illuminate\Support\Facades\Http;
-use League\OAuth2\Client\Provider\Facebook;
-use League\OAuth2\Client\Token\AccessToken;
+use League\OAuth2\Client\Provider\GenericProvider;
 
 class FacebookProvider extends ProviderAbstract
 {
-    protected function makeProvider(): Facebook
+    protected function makeProvider(): \League\OAuth2\Client\Provider\AbstractProvider
     {
-        return new Facebook([
-            'clientId' => $this->config['client_id'],
-            'clientSecret' => $this->config['client_secret'],
-            'redirectUri' => $this->config['redirect'],
-            'graphApiVersion' => $this->config['graph_api_version'] ?? 'v16.0',
+        return new GenericProvider([
+            'clientId'                => $this->config['client_id'],
+            'clientSecret'            => $this->config['client_secret'],
+            'redirectUri'             => $this->config['redirect'],
+            'urlAuthorize'            => 'https://www.facebook.com/v12.0/dialog/oauth',
+            'urlAccessToken'          => 'https://graph.facebook.com/v12.0/oauth/access_token',
+            'urlResourceOwnerDetails' => 'https://graph.facebook.com/me?fields=id,name,email,picture',
+            'scopes'                  => $this->config['scopes'] ?? ['email', 'public_profile']
         ]);
-    }
-
-    public function userFromToken(string|AccessToken $accessToken): array
-    {
-        $tokenObj = new AccessToken(['access_token' => $accessToken]);
-        $owner = $this->oauthProvider->getResourceOwner($tokenObj);
-        $data = method_exists($owner,'toArray') ? $owner->toArray() : (array)$owner;
-        return [
-            'id' => $data['id'] ?? null,
-            'name' => $data['name'] ?? null,
-            'email' => $data['email'] ?? null,
-            'raw' => $data,
-        ];
-    }
-
-    public function revokeToken(?string $accessToken = null): bool
-    {
-        // For Facebook, invalidate the token via Graph API /debug_token with app access
-        $token = $accessToken;
-        if (!$token) return false;
-
-        $appToken = $this->config['client_id'] . '|' . $this->config['client_secret'];
-        $resp = Http::get('https://graph.facebook.com/debug_token', [
-            'input_token' => $token,
-            'access_token' => $appToken,
-        ]);
-
-        return $resp->successful();
     }
 }

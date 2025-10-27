@@ -5,4 +5,3 @@ composer.lock
 /testbench.yaml
 /.phpunit.cache
 .phpunit.result.cache
-GIT_INSTRUCTIONS.md

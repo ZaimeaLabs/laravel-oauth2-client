@@ -1,63 +1,65 @@
-# zaimea/laravel-oauth2-client
+zaimea/laravel-oauth2-client
 
-Skeleton Laravel package implementing an OAuth2 providers manager built on league/oauth2-client.
-- Providers: github, google (examples)
-- Extensible: add new providers by creating classes under src/Providers
+Extensible OAuth2 client package for Laravel 12, built on top of league/oauth2-client. Allows users to attach external provider accounts (GitHub, Google, Facebook, Instagram, X) to their main account on accounts.1s100.online and reuse tokens later for server-to-server operations (e.g. Google Calendar events, GitHub org invites).
 
-## Quick install
-1. `composer require zaimea/laravel-oauth2-client`
-2. `php artisan vendor:publish --tag=config`
-3. Configure `config/oauth2-client.php`
+Features
 
+Extensible provider architecture (Manager + ProviderAbstract)
 
-## PKCE
-Set `use_pkce` => true in provider config to enable code_challenge generation. The package will return a `__pkce_code_verifier` in the options array when building the authorization URL — store this verifier and provide it in the token exchange if necessary.
+Built-in GitHub provider (league/oauth2-github) with manual fallback exchange and revoke
 
-## Publishing
-Publish config, migrations and factories:
+PKCE support per-provider
 
-```bash
-php artisan vendor:publish --provider="Zaimea\\OAuth2Client\\AuthProvidersServiceProvider" --tag=config
-php artisan vendor:publish --provider="Zaimea\\OAuth2Client\\AuthProvidersServiceProvider" --tag=migrations
-php artisan vendor:publish --provider="Zaimea\\OAuth2Client\\AuthProvidersServiceProvider" --tag=factories
-```
+DB model and migration for storing provider connections
 
-## Tests
-Run tests with:
+Encrypted token storage (optional)
 
-```bash
-composer install
-vendor/bin/phpunit
-```
+Example blade views + controller routes
 
+Installation (local path)
 
-## Composer install (example)
-To include in your project via composer (after publishing to packagist or local repo):
+Place package in packages/zaimea/laravel-oauth2-client or add as path repo in composer.json.
 
-```bash
-composer require zaimea/laravel-oauth2-client
-```
+Run:
 
-## Suggested initial commit message
-Use a clear commit message for the initial release, e.g.:
+composer require zaimea/laravel-oauth2-client:dev-main
+php artisan vendor:publish --provider="Zaimea\OAuth2Client\OAuth2ClientServiceProvider" --tag=config
+php artisan migrate
 
-```
-feat: initial skeleton for laravel-oauth2-client
+.env
 
-- added Manager, ProviderAbstract and specific providers (GitHub, Google, Facebook, X, YouTube, Instagram)
-- added migrations, model, factory and tests
-- added PKCE support and revokeToken implementations
-- added CI workflow and README
-```
+Set your provider keys:
 
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+GITHUB_REDIRECT=https://accounts.1s100.online/oauth2-client/connect/github/callback
 
-## Package views & routes
-The package ships a simple controller, routes and Blade views. Publish them with:
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT=https://accounts.1s100.online/oauth2-client/connect/google/callback
 
-```bash
-php artisan vendor:publish --provider="Zaimea\\OAuth2Client\\AuthProvidersServiceProvider" --tag=views
-php artisan vendor:publish --provider="Zaimea\\OAuth2Client\\AuthProvidersServiceProvider" --tag=migrations
-php artisan vendor:publish --provider="Zaimea\\OAuth2Client\\AuthProvidersServiceProvider" --tag=factories
-```
+Routes
 
-After publishing, you'll have routes prefixed with `/oauth2-client/*`. The views assume `layouts.app` exists in your application; adapt as needed.
+GET /oauth2-client/providers — list & status (auth)
+
+GET /oauth2-client/connect/{provider} — start attach (auth)
+
+GET /oauth2-client/connect/{provider}/callback — callback (auth)
+
+POST /oauth2-client/connect/{provider}/detach — detach & revoke (auth)
+
+Usage
+
+Ensure authenticated.
+
+Visit /oauth2-client/providers.
+
+Click “Connect GitHub”. Authorize and return. Tokens will be stored.
+
+Adding a new provider
+
+Create src/Providers/YourProvider.php extending ProviderAbstract.
+
+Add configuration to config/oauth2-client.php.
+
+Call $manager->driver('yourprovider') to use.

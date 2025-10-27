@@ -7,7 +7,8 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
-use Zaimea\OAuth2Client\Manager;
+use Illuminate\Support\Facades\Crypt;
+use Zaimea\OAuth2Client\Core\Manager;
 use Zaimea\OAuth2Client\Models\OauthProvider;
 
 class ConnectController extends Controller
@@ -19,9 +20,12 @@ class ConnectController extends Controller
         $this->manager = $manager;
     }
 
+    /**
+     * List providers and attached records for current user
+     */
     public function index(Request $request)
     {
-       $providers = array_keys(config('oauth2-client.providers', []));
+        $providers = array_keys(config('oauth2-client.providers', []));
         $attached = [];
         if (Auth::check()) {
             $attached = OauthProvider::where('user_id', Auth::id())->get()->keyBy('provider')->toArray();
@@ -29,62 +33,36 @@ class ConnectController extends Controller
         return view('oauth2-client::index', compact('providers','attached'));
     }
 
-    public function show(Request $request, $provider)
-    {
-        $attached = null;
-        if (Auth::check()) {
-            $attached = OauthProvider::where('user_id', Auth::id())->where('provider', $provider)->first();
-        }
-        return view('oauth2-client::show', compact('provider','attached'));
-    }
-
-    public function redirectToProvider(Request $request, $provider)
+    public function redirectToProvider(Request $request, string $provider)
     {
         $drv = $this->manager->driver($provider);
         $auth = $drv->redirectUrl();
-        if (is_array($auth)) {
-            if (!empty($auth['code_verifier'])) {
-                Session::put("oauth.{$provider}.code_verifier", $auth['code_verifier']);
-            }
-            if (!empty($auth['state'])) {
-                Session::put("oauth.{$provider}.state", $auth['state']);
-            }
-            Log::info('OAuth redirect ConnectController.php', [
-                'provider'=>$provider,
-                'has_code_verifier'=>!empty($auth['code_verifier']),
-                'state'=>$auth['state'] ?? null
-            ]);
-            return redirect()->away($auth['url']);
+
+        // persist PKCE verifier and state
+        if (!empty($auth['code_verifier'])) {
+            Session::put("oauth.{$provider}.code_verifier", $auth['code_verifier']);
         }
-        Log::info('OAuth redirect debug', [
-            'provider' => $provider,
-            'config_redirect' => $drv->getConfig()['redirect'] ?? null,
-            'env_redirect' => env('GITHUB_REDIRECT'),
-        ]);
-        return redirect()->away($auth);
+        if (!empty($auth['state'])) {
+            Session::put("oauth.{$provider}.state", $auth['state']);
+        }
+
+        Log::info('OAuth redirect', ['provider' => $provider, 'has_code_verifier' => !empty($auth['code_verifier']), 'state' => $auth['state'] ?? null]);
+        return redirect()->away($auth['url']);
     }
 
-    public function callback(Request $request, $provider)
+    public function callback(Request $request, string $provider)
     {
         $user = Auth::user();
         if (!$user) return redirect()->route('login');
 
-        // debug: log callback params (temporary - remove in prod)
-        Log::info('OAuth callback hit', [
-            'provider' => $provider,
-            'code' => $request->get('code') ?? 'missing',
-            'state' => $request->get('state') ?? 'missing',
-            'session_state' => Session::get("oauth.{$provider}.state"),
-            'session_code_verifier_exists' => Session::has("oauth.{$provider}.code_verifier"),
-        ]);
         $code = $request->get('code');
-        Log::info('Callback details', ['code'=>$code,'state'=>$request->get('state')]); // De sters
         if (!$code) {
             return redirect()->route('oauth2-client.providers.index')->with('error','Authorization failed');
         }
 
         $drv = $this->manager->driver($provider);
 
+        // state
         $storedState = Session::pull("oauth.{$provider}.state", null);
         if ($storedState !== null && $storedState !== $request->get('state')) {
             Log::warning('OAuth state mismatch', ['provider'=>$provider,'req'=>$request->get('state'),'stored'=>$storedState]);
@@ -104,9 +82,9 @@ class ConnectController extends Controller
         }
 
         Log::info('OAuth token exchange result', [
-            'provider'=>$provider,
+            'provider' => $provider,
             'has_access_token' => !empty($tokenData['access_token'] ?? null),
-            'raw' => isset($tokenData['raw']) ? array_keys($tokenData['raw']) : null,
+            'raw_keys' => isset($tokenData['raw']) ? array_keys($tokenData['raw']) : null,
         ]);
 
         $accessToken = $tokenData['access_token'] ?? null;
@@ -116,13 +94,17 @@ class ConnectController extends Controller
         }
 
         $remoteUser = $drv->userFromToken($accessToken);
+        // encrypt tokens if configured
+        $encrypt = config('oauth2-client.encrypt_tokens', true);
+        $storedAccess = $encrypt ? Crypt::encryptString($accessToken) : $accessToken;
+        $storedRefresh = isset($tokenData['refresh_token']) ? ($encrypt ? Crypt::encryptString($tokenData['refresh_token']) : $tokenData['refresh_token']) : null;
 
         OauthProvider::updateOrCreate(
-            ['user_id'=>$user->id,'provider'=>$provider],
+            ['user_id' => $user->id, 'provider' => $provider],
             [
-                'provider_user_id' => $remoteUser['id'] ?? $remoteUser['node_id'] ?? null,
-                'access_token' => $accessToken,
-                'refresh_token' => $tokenData['refresh_token'] ?? null,
+                'provider_user_id' => $remoteUser['id'] ?? null,
+                'access_token' => $storedAccess,
+                'refresh_token' => $storedRefresh,
                 'expires_at' => isset($tokenData['expires_in']) ? now()->addSeconds($tokenData['expires_in']) : null,
                 'scopes' => $tokenData['raw']['scope'] ?? null,
                 'meta' => $remoteUser,
@@ -132,18 +114,27 @@ class ConnectController extends Controller
         return redirect()->route('oauth2-client.providers.index')->with('success','Provider connected: '.$provider);
     }
 
-    public function detach(Request $request, $provider)
+    public function detach(Request $request, string $provider)
     {
         $user = Auth::user();
         if (!$user) return redirect()->route('login');
-        $record = OauthProvider::where('user_id',$user->id)->where('provider',$provider)->first();
+
+        $record = OauthProvider::where('user_id', $user->id)->where('provider', $provider)->first();
         if (!$record) return back()->with('error','Not attached');
+
         try {
+            // revoke token via provider
             $drv = $this->manager->driver($provider);
-            $drv->revokeToken($record->access_token);
+
+            // decrypt token if necessary
+            $decrypt = config('oauth2-client.encrypt_tokens', true);
+            $access = $decrypt ? \Illuminate\Support\Facades\Crypt::decryptString($record->access_token) : $record->access_token;
+
+            $drv->revokeToken($access);
         } catch (\Throwable $e) {
             report($e);
         }
+
         $record->delete();
         return back()->with('success','Detached');
     }
